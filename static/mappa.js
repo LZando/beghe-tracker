@@ -29,28 +29,21 @@
         return s.length > n ? s.slice(0, n - 1) + "…" : s;
     }
 
-    // ----- Layout: un cluster per fornitore, beghe in cerchio attorno ----- //
+    // ----- Layout ad albero: fornitori in riga in alto, beghe incolonnate sotto ----- //
+    const COL_W = 240;   // larghezza colonna per fornitore
+    const TOP_Y = 40;    // riga dei fornitori
+    const START_Y = 150; // prima bega sotto al fornitore
+    const GAP_Y = 60;    // distanza verticale tra le beghe
+
     function layout(grafo) {
-        const cols = Math.max(1, Math.ceil(Math.sqrt(grafo.length)));
-        const CELL = 400;
         grafo.forEach((f, i) => {
-            f.x = (i % cols) * CELL + CELL / 2;
-            f.y = Math.floor(i / cols) * CELL + CELL / 2;
-            const n = f.beghe.length;
-            const R = Math.max(95, (n * 34) / (2 * Math.PI) + 70);
+            f.x = i * COL_W + COL_W / 2;
+            f.y = TOP_Y;
             f.beghe.forEach((b, j) => {
-                const ang = (2 * Math.PI * j) / Math.max(n, 1) - Math.PI / 2;
-                b.x = f.x + R * Math.cos(ang);
-                b.y = f.y + R * Math.sin(ang);
+                b.x = f.x;
+                b.y = START_Y + j * GAP_Y;
             });
         });
-    }
-
-    // Punto sul bordo del rettangolo (centrato in cx,cy) in direzione di from
-    function bordoRett(cx, cy, hw, hh, fromx, fromy) {
-        const ux = fromx - cx, uy = fromy - cy;
-        const s = 1 / Math.max(Math.abs(ux) / hw, Math.abs(uy) / hh || 1e-6);
-        return [cx + ux * s, cy + uy * s];
     }
 
     // Crea un nodo (rect + label) senza dimensionarlo ancora.
@@ -146,13 +139,13 @@
             bItems.forEach(({ rect, text }) => dimensiona(rect, text, "bega"));
 
             grafo.forEach((f) => {
-                f.beghe.forEach((b) => {
-                    const [ex, ey] = bordoRett(f.x, f.y, f.hw + 4, f.hh + 4, b.x, b.y);
-                    links.appendChild(el("line", {
-                        x1: b.x, y1: b.y, x2: ex, y2: ey,
-                        class: "link link-" + b.colore, "marker-end": "url(#arrow)",
-                    }));
-                });
+                if (!f.beghe.length) return;
+                const ultima = f.beghe[f.beghe.length - 1];
+                // freccia dall'ultima bega su fino al bordo inferiore del fornitore
+                links.appendChild(el("line", {
+                    x1: f.x, y1: ultima.y, x2: f.x, y2: f.y + f.hh + 4,
+                    class: "link", "marker-end": "url(#arrow)",
+                }));
             });
 
             fit();
