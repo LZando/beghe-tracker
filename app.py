@@ -394,6 +394,11 @@ def export_csv():
     )
 
 
+# Crea le tabelle all'import del modulo: necessario sotto WSGI
+# (es. PythonAnywhere), dove il blocco __main__ non viene eseguito.
+# E' idempotente: usa CREATE TABLE IF NOT EXISTS.
+init_db()
+
+
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
