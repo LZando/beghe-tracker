@@ -14,6 +14,7 @@ Struttura:
 
 import csv
 import io
+import os
 import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -363,6 +364,50 @@ def bega_elimina(bid):
 
 
 # --------------------------------------------------------------------------- #
+# Mappa concettuale (beghe -> fornitore)
+# --------------------------------------------------------------------------- #
+@app.route("/mappa")
+def mappa():
+    db = get_db()
+    oggi = date.today()
+    fornitori = db.execute("SELECT * FROM fornitori ORDER BY nome").fetchall()
+    grafo = []
+    for f in fornitori:
+        beghe = db.execute(
+            """SELECT * FROM beghe WHERE fornitore_id = ?
+               ORDER BY (data_consegna IS NULL), data_consegna""",
+            (f["id"],),
+        ).fetchall()
+        nodi = []
+        for b in beghe:
+            cls = riga_classe(b, oggi)  # 'scaduta' | 'in-scadenza' | ''
+            if b["stato"] == "Risolta":
+                colore = "risolta"
+            else:
+                colore = cls or "aperta"
+            nodi.append(
+                {
+                    "id": b["id"],
+                    "titolo": b["titolo"],
+                    "stato": b["stato"],
+                    "priorita": b["priorita"],
+                    "categoria": b["categoria"],
+                    "consegna": b["data_consegna"],
+                    "colore": colore,
+                }
+            )
+        grafo.append(
+            {
+                "id": f["id"],
+                "nome": f["nome"],
+                "url": url_for("fornitore", fid=f["id"]),
+                "beghe": nodi,
+            }
+        )
+    return render_template("mappa.html", grafo=grafo)
+
+
+# --------------------------------------------------------------------------- #
 # Export CSV
 # --------------------------------------------------------------------------- #
 @app.route("/export.csv")
@@ -401,4 +446,4 @@ init_db()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(port=int(os.environ.get("PORT", 5000)), debug=True)
