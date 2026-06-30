@@ -110,8 +110,8 @@
         // nodi fornitore
         grafo.forEach((f) => {
             const g = el("g", { transform: `translate(${f.x},${f.y})`, class: "node fornitore" });
-            const { rect, text } = creaNodo(g, tronca(f.nome, 26));
-            agganciaHandlers(g, `<b>${f.nome}</b><br>${f.beghe.length} beghe`, f.url);
+            const { rect, text } = creaNodo(g, tronca(f.nome, 24) + "  ·  " + f.beghe.length);
+            agganciaHandlers(g, `<b>${f.nome}</b><br>${f.beghe.length} beghe mostrate`, f.url);
             nodes.appendChild(g);
             fItems.push({ f, rect, text });
         });
@@ -207,13 +207,47 @@
         apply();
     }
 
+    // ----- Vista: filtro risolte + ordinamento + conteggio ----- //
+    const RANK_PRIORITA = { Alta: 0, Media: 1, Bassa: 2 };
+
+    function ordinaBeghe(beghe, criterio) {
+        const out = beghe.slice();
+        out.sort((a, b) => {
+            if (criterio === "priorita") {
+                return (RANK_PRIORITA[a.priorita] ?? 9) - (RANK_PRIORITA[b.priorita] ?? 9);
+            }
+            if (criterio === "titolo") {
+                return a.titolo.localeCompare(b.titolo, "it");
+            }
+            // scadenza (default): per data crescente, senza data in fondo
+            if (!a.consegna && !b.consegna) return 0;
+            if (!a.consegna) return 1;
+            if (!b.consegna) return -1;
+            return a.consegna < b.consegna ? -1 : a.consegna > b.consegna ? 1 : 0;
+        });
+        return out;
+    }
+
+    function vista() {
+        const mostraRisolte = document.getElementById("toggle-risolte").checked;
+        const criterio = document.getElementById("ordina").value;
+        return GRAFO.map((f) => {
+            const beghe = f.beghe.filter((b) => mostraRisolte || b.stato !== "Risolta");
+            return Object.assign({}, f, { beghe: ordinaBeghe(beghe, criterio) });
+        });
+    }
+
+    function render() { build(vista()); }
+
     // ----- Avvio ----- //
     function start() {
         if (!GRAFO.length) {
             document.getElementById("map-empty").hidden = false;
             return;
         }
-        build(GRAFO);
+        document.getElementById("toggle-risolte").addEventListener("change", render);
+        document.getElementById("ordina").addEventListener("change", render);
+        render();
     }
 
     window.MAP = {

@@ -9,6 +9,12 @@
         <span class="legend"><i class="dot in-scadenza"></i>In scadenza</span>
         <span class="legend"><i class="dot aperta"></i>Aperta</span>
         <span class="legend"><i class="dot risolta"></i>Risolta</span>
+        <label class="map-toggle"><input type="checkbox" id="toggle-risolte"> Mostra risolte</label>
+        <select id="ordina" class="map-select" title="Ordina le beghe nella colonna">
+            <option value="scadenza">Ordina: scadenza</option>
+            <option value="priorita">Ordina: priorità</option>
+            <option value="titolo">Ordina: titolo</option>
+        </select>
         <button class="btn small" type="button" onclick="MAP.zoom(1.2)">+</button>
         <button class="btn small" type="button" onclick="MAP.zoom(0.83)">−</button>
         <button class="btn small ghost" type="button" onclick="MAP.fit()">Adatta</button>

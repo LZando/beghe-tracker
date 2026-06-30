@@ -152,6 +152,9 @@ tr.in-scadenza td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
 .map-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .legend { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .legend .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.map-toggle { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink); cursor: pointer; }
+.map-toggle input { cursor: pointer; }
+.map-select { padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 13px; background: #fff; }
 .dot.scaduta { background: var(--red); }
 .dot.in-scadenza { background: var(--amber); }
 .dot.aperta { background: var(--brand); }
