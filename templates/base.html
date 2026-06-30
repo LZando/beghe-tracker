@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Beghe Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}">Beghe Tracker</a>
+    <nav>
+        <a href="{{ url_for('index') }}">Dashboard</a>
+        <a href="{{ url_for('export_csv') }}">Esporta CSV</a>
+    </nav>
+</header>
+
+<main class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+            <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="foot">
+    Prototipo interno · {{ oggi.strftime('%d/%m/%Y') }} · Flask + SQLite
+</footer>
+</body>
+</html>
