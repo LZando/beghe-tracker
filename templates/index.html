@@ -2,10 +2,18 @@
 {% block title %}Beghe Tracker{% endblock %}
 
 {% block content %}
-<div class="home-head">
-    <h2>Fornitori e beghe <span class="muted small">({{ tot_aperte }} aperte)</span></h2>
+<section class="kpis">
+    <div class="kpi"><span class="num">{{ tot.aperte or 0 }}</span><span class="lab">Beghe aperte</span></div>
+    <div class="kpi"><span class="num">{{ tot.in_lavorazione or 0 }}</span><span class="lab">In lavorazione</span></div>
+    <div class="kpi danger"><span class="num">{{ tot.scadute or 0 }}</span><span class="lab">Scadute</span></div>
+    <div class="kpi ok"><span class="num">{{ tot.risolte or 0 }}</span><span class="lab">Risolte</span></div>
+</section>
+
+<section class="card">
+    <h2 class="card-title">Dettaglio Beghe e Fornitori</h2>
+
     <details class="nuovo-forn">
-        <summary class="btn primary">+ Nuovo fornitore</summary>
+        <summary class="btn primary">+ Aggiungi fornitore</summary>
         <form method="post" action="{{ url_for('fornitore_nuovo') }}" class="form card-inset">
             <div class="row">
                 <label class="grow">Nome *<input name="nome" required placeholder="Es. ART Alluminio"></label>
@@ -19,47 +27,19 @@
             <button class="btn primary" type="submit">Salva fornitore</button>
         </form>
     </details>
-</div>
 
-{% if alberi %}
-<div class="card tree">
-    {% for f in alberi %}
-    <details class="t-forn" {% if f.aperte %}open{% endif %}>
-        <summary>
-            <span class="t-name">{{ f.nome }}</span>
-            <span class="count {{ 'red' if f.aperte }}">{{ f.aperte }}</span>
-            <a class="t-open" href="{{ url_for('fornitore', fid=f.id) }}" onclick="event.stopPropagation()">apri scheda →</a>
-        </summary>
+    {% if alberi %}
+    <div id="mind" class="mind">
+        <svg id="mind-links" class="mind-links" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="mind-nodes"></div>
+    </div>
+    {% else %}
+    <p class="empty">Nessun fornitore. Aggiungine uno col pulsante «+ Aggiungi fornitore».</p>
+    {% endif %}
+</section>
 
-        {% if f.commesse %}
-            {% for c in f.commesse %}
-            <details class="t-comm" {% if c.aperte %}open{% endif %}>
-                <summary>
-                    <span class="t-comm-name">{{ c.nome or '(nessuna commessa)' }}</span>
-                    <span class="count">{{ c.beghe|length }}</span>
-                </summary>
-                <ul class="t-beghe">
-                    {% for b in c.beghe %}
-                    <li class="t-bega {{ b.colore }}">
-                        <a class="t-bega-link" href="{{ url_for('bega_detail', bid=b.id) }}">
-                            <span class="t-bullet"></span>
-                            <span class="t-titolo {{ 'struck' if b.stato == 'Risolta' }}">{{ b.titolo }}</span>
-                        </a>
-                        <span class="tag prio-{{ b.priorita|lower }}">{{ b.priorita }}</span>
-                        <span class="tag stato-{{ b.stato|lower|replace(' ','-') }}">{{ b.stato }}</span>
-                        {% if b.descrizione %}<div class="t-desc">{{ b.descrizione }}</div>{% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </details>
-            {% endfor %}
-        {% else %}
-            <p class="t-empty">Nessuna bega. <a href="{{ url_for('fornitore', fid=f.id) }}">Aggiungine una →</a></p>
-        {% endif %}
-    </details>
-    {% endfor %}
-</div>
-{% else %}
-<div class="card"><p class="empty">Nessun fornitore. Aggiungine uno col pulsante «+ Nuovo fornitore».</p></div>
-{% endif %}
+<script>
+    const ALBERI = {{ alberi|tojson }};
+</script>
+<script src="{{ url_for('static', filename='home.js') }}"></script>
 {% endblock %}

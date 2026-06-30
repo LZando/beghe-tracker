@@ -231,6 +231,52 @@ tr.in-scadenza td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
 .t-desc { flex-basis: 100%; color: var(--muted); font-size: 13px; padding-left: 15px; }
 .t-empty { color: var(--muted); padding: 6px 0 10px 30px; }
 
+/* ---- home: mappa concettuale (mind-map) ---- */
+.card-title { font-size: 18px; margin: 0 0 12px; }
+.mind { position: relative; overflow: auto; margin-top: 14px; }
+.mind-links { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 0; }
+.mind-links path { fill: none; stroke: #cbd5e1; stroke-width: 2; }
+#mind-nodes { position: relative; z-index: 1; min-height: 120px; }
+
+.m-node { position: absolute; box-sizing: border-box; }
+
+.m-forn, .m-comm {
+    display: flex; align-items: center; gap: 8px; border-radius: 999px;
+    padding: 8px 14px; box-shadow: var(--shadow);
+}
+.m-forn { background: #111827; color: #fff; }
+.m-comm { background: #eef2f7; color: var(--ink); border: 1px solid var(--line); }
+.m-label { font-weight: 700; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-comm .m-label { font-family: ui-monospace, "Cascadia Code", monospace; }
+.m-count { margin-left: auto; border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 700; }
+.m-forn .m-count { background: rgba(255, 255, 255, .18); color: #fff; }
+.m-comm .m-count { background: #e0e7ff; color: #3730a3; }
+.m-toggle {
+    width: 20px; height: 20px; flex: 0 0 20px; border-radius: 50%; cursor: pointer;
+    border: 1px solid currentColor; background: transparent; color: inherit;
+    font-weight: 700; line-height: 1; font-size: 14px; display: inline-flex;
+    align-items: center; justify-content: center; padding: 0;
+}
+.m-toggle.ghost { border: none; cursor: default; }
+.m-forn .m-toggle:hover, .m-comm .m-toggle:hover { background: rgba(127, 127, 127, .18); }
+
+.m-bega {
+    background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; box-shadow: var(--shadow); cursor: pointer;
+}
+.m-bega:hover { border-color: var(--brand); }
+.m-bega.scaduta { border-left-color: var(--red); }
+.m-bega.in-scadenza { border-left-color: var(--amber); }
+.m-bega.aperta { border-left-color: var(--brand); }
+.m-bega.risolta { border-left-color: var(--green); opacity: .75; }
+.m-bega-title { font-weight: 700; }
+.m-bega-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.m-bega-meta { display: flex; gap: 6px; margin-top: 6px; }
+.m-pdf {
+    position: absolute; top: 8px; right: 8px; background: var(--red); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; letter-spacing: .03em;
+}
+
 /* ---- gruppi commessa nella scheda fornitore ---- */
 .comm-group { margin-bottom: 18px; }
 .comm-title { font-size: 14px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; color: #334155; font-family: ui-monospace, "Cascadia Code", monospace; }

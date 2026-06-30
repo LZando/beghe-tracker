@@ -174,9 +174,26 @@ def inject_globals():
 def index():
     db = get_db()
     oggi = date.today()
+    oggi_s = oggi.isoformat()
+    tot = db.execute(
+        """
+        SELECT
+            COUNT(*) FILTER (WHERE stato != 'Risolta')                          AS aperte,
+            COUNT(*) FILTER (WHERE stato = 'In lavorazione')                    AS in_lavorazione,
+            COUNT(*) FILTER (WHERE stato != 'Risolta'
+                              AND data_consegna IS NOT NULL
+                              AND data_consegna < ?)                            AS scadute,
+            COUNT(*) FILTER (WHERE stato = 'Risolta')                          AS risolte
+        FROM beghe
+        """,
+        (oggi_s,),
+    ).fetchone()
+    pdf_counts = {
+        r["bega_id"]: r["n"]
+        for r in db.execute("SELECT bega_id, COUNT(*) AS n FROM allegati GROUP BY bega_id")
+    }
     fornitori = db.execute("SELECT * FROM fornitori ORDER BY nome").fetchall()
     alberi = []
-    tot_aperte = 0
     for f in fornitori:
         beghe = db.execute(
             """SELECT * FROM beghe WHERE fornitore_id = ?
@@ -184,13 +201,38 @@ def index():
                         (data_consegna IS NULL), data_consegna""",
             (f["id"],),
         ).fetchall()
-        commesse = raggruppa_per_commessa(beghe, oggi)
+        commesse = []
+        for gr in raggruppa_per_commessa(beghe, oggi):
+            commesse.append(
+                {
+                    "nome": gr["nome"] or "(nessuna commessa)",
+                    "aperte": gr["aperte"],
+                    "beghe": [
+                        {
+                            "id": b["id"],
+                            "titolo": b["titolo"],
+                            "descrizione": b["descrizione"],
+                            "priorita": b["priorita"],
+                            "stato": b["stato"],
+                            "colore": b["colore"],
+                            "has_pdf": pdf_counts.get(b["id"], 0) > 0,
+                            "url": url_for("bega_detail", bid=b["id"]),
+                        }
+                        for b in gr["beghe"]
+                    ],
+                }
+            )
         aperte = sum(c["aperte"] for c in commesse)
-        tot_aperte += aperte
         alberi.append(
-            {"id": f["id"], "nome": f["nome"], "aperte": aperte, "commesse": commesse}
+            {
+                "id": f["id"],
+                "nome": f["nome"],
+                "url": url_for("fornitore", fid=f["id"]),
+                "aperte": aperte,
+                "commesse": commesse,
+            }
         )
-    return render_template("index.html", alberi=alberi, tot_aperte=tot_aperte)
+    return render_template("index.html", alberi=alberi, tot=tot)
 
 
 @app.route("/fornitore/nuovo", methods=["POST"])
