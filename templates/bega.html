@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ b.titolo }} — Beghe Tracker{% endblock %}
+
+{% block content %}
+<a class="back" href="{{ url_for('fornitore', fid=f.id) }}">← {{ f.nome }}</a>
+
+<div class="bega-detail">
+    <section class="card">
+        <div class="card-head">
+            <h2 class="{{ 'struck' if b.stato=='Risolta' }}">{{ b.titolo }}</h2>
+            <span class="tag stato-{{ b.stato|lower|replace(' ','-') }}">{{ b.stato }}</span>
+        </div>
+        <p class="muted">
+            {{ f.nome }}{% if b.commessa %} · Commessa <strong>{{ b.commessa }}</strong>{% endif %}
+            · Priorità {{ b.priorita }}{% if b.categoria %} · {{ b.categoria }}{% endif %}
+        </p>
+
+        <form method="post" action="{{ url_for('bega_modifica', bid=b.id) }}" class="form bega-form" enctype="multipart/form-data">
+            <div class="row">
+                <label class="grow">Titolo *<input name="titolo" required value="{{ b.titolo }}"></label>
+                <label>Commessa<input name="commessa" value="{{ b.commessa or '' }}" placeholder="Es. 250040"></label>
+            </div>
+            <label>Descrizione<textarea name="descrizione" rows="3">{{ b.descrizione or '' }}</textarea></label>
+            <label>Riferimenti<input name="riferimenti" value="{{ b.riferimenti or '' }}"></label>
+            <div class="row">
+                <label>Categoria<select name="categoria">
+                    <option value="">—</option>
+                    {% for cat in CATEGORIE %}<option value="{{ cat }}" {{ 'selected' if b.categoria==cat }}>{{ cat }}</option>{% endfor %}
+                </select></label>
+                <label>Priorità<select name="priorita">
+                    {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if b.priorita==p }}>{{ p }}</option>{% endfor %}
+                </select></label>
+                <label>Stato<select name="stato">
+                    {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if b.stato==s }}>{{ s }}</option>{% endfor %}
+                </select></label>
+                <label>Data consegna ordine<input type="date" name="data_consegna" value="{{ b.data_consegna or '' }}"></label>
+            </div>
+            <label>Aggiungi allegati PDF<input type="file" name="allegati" accept="application/pdf" multiple></label>
+            <div class="row-actions">
+                <button class="btn primary" type="submit">Salva modifiche</button>
+                <a class="btn ghost" href="{{ url_for('fornitore', fid=f.id) }}">Annulla</a>
+                <form method="post" action="{{ url_for('bega_elimina', bid=b.id) }}" style="margin-left:auto"
+                      onsubmit="return confirm('Eliminare questa bega e i suoi allegati?')">
+                    <button class="btn ghost danger" type="submit">Elimina bega</button>
+                </form>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <div class="card-head"><h2>Allegati ({{ allegati|length }})</h2></div>
+        {% if allegati %}
+            {% for a in allegati %}
+            <div class="allegato">
+                <div class="allegato-head">
+                    <a href="{{ url_for('allegato_serve', aid=a.id) }}" target="_blank" rel="noopener">{{ a.nome_file }}</a>
+                    <form method="post" action="{{ url_for('allegato_elimina', aid=a.id) }}"
+                          onsubmit="return confirm('Rimuovere questo allegato?')">
+                        <button class="btn small ghost danger" type="submit">Rimuovi</button>
+                    </form>
+                </div>
+                <embed class="pdf-preview" src="{{ url_for('allegato_serve', aid=a.id) }}#toolbar=0" type="application/pdf">
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">Nessun allegato. Caricane uno dal form qui a fianco (campo «Aggiungi allegati PDF»).</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

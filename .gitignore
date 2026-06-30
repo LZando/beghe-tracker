@@ -7,6 +7,9 @@ venv/
 # Database locale (si rigenera al primo avvio)
 beghe.db
 
+# File caricati dagli utenti (PDF allegati alle beghe)
+uploads/
+
 # IDE
 .idea/
 .vscode/

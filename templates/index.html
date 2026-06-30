@@ -1,51 +1,65 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Beghe Tracker{% endblock %}
+{% block title %}Beghe Tracker{% endblock %}
 
 {% block content %}
-<section class="kpis">
-    <div class="kpi"><span class="num">{{ tot.aperte or 0 }}</span><span class="lab">Beghe aperte</span></div>
-    <div class="kpi"><span class="num">{{ tot.in_lavorazione or 0 }}</span><span class="lab">In lavorazione</span></div>
-    <div class="kpi danger"><span class="num">{{ tot.scadute or 0 }}</span><span class="lab">Scadute</span></div>
-    <div class="kpi ok"><span class="num">{{ tot.risolte or 0 }}</span><span class="lab">Risolte</span></div>
-</section>
-
-<div class="grid">
-    <section class="card">
-        <div class="card-head">
-            <h2>Fornitori</h2>
-        </div>
-        {% if fornitori %}
-        <table class="list">
-            <thead>
-            <tr><th>Fornitore</th><th>Referente</th><th class="num-col">Aperte</th><th class="num-col">Scadute</th><th></th></tr>
-            </thead>
-            <tbody>
-            {% for f in fornitori %}
-            <tr>
-                <td><a class="strong" href="{{ url_for('fornitore', fid=f.id) }}">{{ f.nome }}</a></td>
-                <td class="muted">{{ f.referente or '—' }}</td>
-                <td class="num-col">{% if f.aperte %}<span class="pill">{{ f.aperte }}</span>{% else %}0{% endif %}</td>
-                <td class="num-col">{% if f.scadute %}<span class="pill red">{{ f.scadute }}</span>{% else %}0{% endif %}</td>
-                <td class="num-col"><a class="btn small" href="{{ url_for('fornitore', fid=f.id) }}">Apri →</a></td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="empty">Nessun fornitore ancora. Aggiungine uno qui a fianco. →</p>
-        {% endif %}
-    </section>
-
-    <section class="card">
-        <div class="card-head"><h2>Nuovo fornitore</h2></div>
-        <form method="post" action="{{ url_for('fornitore_nuovo') }}" class="form">
-            <label>Nome *<input name="nome" required placeholder="Es. Rossi Materiali Srl"></label>
-            <label>Referente<input name="referente" placeholder="Es. Mario Rossi"></label>
-            <label>Email<input name="email" type="email" placeholder="ufficio@fornitore.it"></label>
-            <label>Telefono<input name="telefono" placeholder="0541 ..."></label>
+<div class="home-head">
+    <h2>Fornitori e beghe <span class="muted small">({{ tot_aperte }} aperte)</span></h2>
+    <details class="nuovo-forn">
+        <summary class="btn primary">+ Nuovo fornitore</summary>
+        <form method="post" action="{{ url_for('fornitore_nuovo') }}" class="form card-inset">
+            <div class="row">
+                <label class="grow">Nome *<input name="nome" required placeholder="Es. ART Alluminio"></label>
+                <label>Referente<input name="referente" placeholder="Es. Mario Rossi"></label>
+            </div>
+            <div class="row">
+                <label>Email<input name="email" type="email"></label>
+                <label>Telefono<input name="telefono"></label>
+            </div>
             <label>Note<textarea name="note" rows="2"></textarea></label>
-            <button class="btn primary" type="submit">+ Aggiungi fornitore</button>
+            <button class="btn primary" type="submit">Salva fornitore</button>
         </form>
-    </section>
+    </details>
 </div>
+
+{% if alberi %}
+<div class="card tree">
+    {% for f in alberi %}
+    <details class="t-forn" {% if f.aperte %}open{% endif %}>
+        <summary>
+            <span class="t-name">{{ f.nome }}</span>
+            <span class="count {{ 'red' if f.aperte }}">{{ f.aperte }}</span>
+            <a class="t-open" href="{{ url_for('fornitore', fid=f.id) }}" onclick="event.stopPropagation()">apri scheda →</a>
+        </summary>
+
+        {% if f.commesse %}
+            {% for c in f.commesse %}
+            <details class="t-comm" {% if c.aperte %}open{% endif %}>
+                <summary>
+                    <span class="t-comm-name">{{ c.nome or '(nessuna commessa)' }}</span>
+                    <span class="count">{{ c.beghe|length }}</span>
+                </summary>
+                <ul class="t-beghe">
+                    {% for b in c.beghe %}
+                    <li class="t-bega {{ b.colore }}">
+                        <a class="t-bega-link" href="{{ url_for('bega_detail', bid=b.id) }}">
+                            <span class="t-bullet"></span>
+                            <span class="t-titolo {{ 'struck' if b.stato == 'Risolta' }}">{{ b.titolo }}</span>
+                        </a>
+                        <span class="tag prio-{{ b.priorita|lower }}">{{ b.priorita }}</span>
+                        <span class="tag stato-{{ b.stato|lower|replace(' ','-') }}">{{ b.stato }}</span>
+                        {% if b.descrizione %}<div class="t-desc">{{ b.descrizione }}</div>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </details>
+            {% endfor %}
+        {% else %}
+            <p class="t-empty">Nessuna bega. <a href="{{ url_for('fornitore', fid=f.id) }}">Aggiungine una →</a></p>
+        {% endif %}
+    </details>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card"><p class="empty">Nessun fornitore. Aggiungine uno col pulsante «+ Nuovo fornitore».</p></div>
+{% endif %}
 {% endblock %}

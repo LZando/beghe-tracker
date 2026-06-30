@@ -3,18 +3,11 @@
 
 {% block content %}
 <div class="map-head">
-    <h2>Mappa beghe → fornitori</h2>
+    <h2>Mappa concettuale <span class="muted small">(beghe risolte escluse)</span></h2>
     <div class="map-controls">
         <span class="legend"><i class="dot scaduta"></i>Scaduta</span>
         <span class="legend"><i class="dot in-scadenza"></i>In scadenza</span>
         <span class="legend"><i class="dot aperta"></i>Aperta</span>
-        <span class="legend"><i class="dot risolta"></i>Risolta</span>
-        <label class="map-toggle"><input type="checkbox" id="toggle-risolte"> Mostra risolte</label>
-        <select id="ordina" class="map-select" title="Ordina le beghe nella colonna">
-            <option value="scadenza">Ordina: scadenza</option>
-            <option value="priorita">Ordina: priorità</option>
-            <option value="titolo">Ordina: titolo</option>
-        </select>
         <button class="btn small" type="button" onclick="MAP.zoom(1.2)">+</button>
         <button class="btn small" type="button" onclick="MAP.zoom(0.83)">−</button>
         <button class="btn small ghost" type="button" onclick="MAP.fit()">Adatta</button>
@@ -32,7 +25,7 @@
         <g id="map-viewport"></g>
     </svg>
     <div id="map-tip" class="map-tip" hidden></div>
-    <p id="map-empty" class="empty" hidden>Nessun fornitore da mostrare. Aggiungine uno dalla Dashboard.</p>
+    <p id="map-empty" class="empty" hidden>Nessuna bega aperta da mostrare.</p>
 </div>
 
 <script>

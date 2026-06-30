@@ -1,36 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ f.nome }} — Beghe Tracker{% endblock %}
 
-{# ----- macro form bega (riutilizzata per nuova e modifica) ----- #}
-{% macro form_bega(b, action, label) %}
-<form method="post" action="{{ action }}" class="form bega-form">
-    <div class="row">
-        <label class="grow">Titolo *<input name="titolo" required value="{{ b.titolo if b else '' }}"
-               placeholder="Es. Ordine 1234 consegnato incompleto"></label>
-        <label>Importo €<input name="importo" value="{{ b.importo if b and b.importo else '' }}" placeholder="0,00"></label>
-    </div>
-    <label>Descrizione<textarea name="descrizione" rows="2">{{ b.descrizione if b else '' }}</textarea></label>
-    <label>Riferimenti (ordini, DDT, fatture, link)<input name="riferimenti"
-           value="{{ b.riferimenti if b else '' }}" placeholder="Ordine #1234 · DDT 56 · mail 12/06"></label>
-    <div class="row">
-        <label>Categoria<select name="categoria">
-            <option value="">—</option>
-            {% for c in CATEGORIE %}<option value="{{ c }}" {{ 'selected' if b and b.categoria==c }}>{{ c }}</option>{% endfor %}
-        </select></label>
-        <label>Priorità<select name="priorita">
-            {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if (b and b.priorita==p) or (not b and p=='Media') }}>{{ p }}</option>{% endfor %}
-        </select></label>
-        <label>Stato<select name="stato">
-            {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if (b and b.stato==s) or (not b and s=='Aperta') }}>{{ s }}</option>{% endfor %}
-        </select></label>
-        <label>Data consegna ordine<input type="date" name="data_consegna" value="{{ b.data_consegna if b else '' }}"></label>
-    </div>
-    <button class="btn primary" type="submit">{{ label }}</button>
-</form>
-{% endmacro %}
-
 {% block content %}
-<a class="back" href="{{ url_for('index') }}">← Dashboard</a>
+<a class="back" href="{{ url_for('index') }}">← Home</a>
 
 <section class="card">
     <div class="card-head supplier-head">
@@ -50,7 +22,7 @@
     </div>
 
     <form method="get" class="filters">
-        <input name="q" value="{{ filtro.q }}" placeholder="Cerca titolo / riferimenti...">
+        <input name="q" value="{{ filtro.q }}" placeholder="Cerca titolo / riferimenti / commessa...">
         <select name="stato">
             <option value="">Tutti gli stati</option>
             {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if filtro.stato==s }}>{{ s }}</option>{% endfor %}
@@ -65,55 +37,37 @@
         {% endif %}
     </form>
 
-    {% if beghe %}
-    <table class="list beghe">
-        <thead>
-        <tr>
-            <th></th><th>Bega</th><th>Categoria</th><th>Priorità</th><th>Stato</th>
-            <th>Consegna</th><th></th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for b in beghe %}
-        <tr class="{{ riga_classe(b, oggi) }}">
-            <td class="check">
-                <form method="post" action="{{ url_for('bega_toggle', bid=b.id) }}">
-                    <button type="submit" class="checkbox {{ 'done' if b.stato=='Risolta' }}"
-                            title="Segna come {{ 'da riaprire' if b.stato=='Risolta' else 'risolta' }}">
-                        {{ '✓' if b.stato=='Risolta' else '' }}
-                    </button>
-                </form>
-            </td>
-            <td>
-                <div class="strong {{ 'struck' if b.stato=='Risolta' }}">{{ b.titolo }}</div>
-                {% if b.descrizione %}<div class="muted small">{{ b.descrizione }}</div>{% endif %}
-                {% if b.riferimenti %}<div class="refs">Rif.: {{ b.riferimenti }}</div>{% endif %}
-                {% if b.importo %}<div class="muted small">€ {{ '%.2f'|format(b.importo) }}</div>{% endif %}
-            </td>
-            <td class="muted">{{ b.categoria or '—' }}</td>
-            <td><span class="tag prio-{{ b.priorita|lower }}">{{ b.priorita }}</span></td>
-            <td><span class="tag stato-{{ b.stato|lower|replace(' ','-') }}">{{ b.stato }}</span></td>
-            <td>
-                {% if b.data_consegna %}
-                    {{ b.data_consegna[8:10] }}/{{ b.data_consegna[5:7] }}/{{ b.data_consegna[0:4] }}
-                {% else %}—{% endif %}
-            </td>
-            <td class="actions">
-                <button class="btn small ghost" type="button" onclick="apriModifica({{ b.id }})">Modifica</button>
-                <form method="post" action="{{ url_for('bega_elimina', bid=b.id) }}"
-                      onsubmit="return confirm('Eliminare questa bega?')" style="display:inline">
-                    <button class="btn small ghost danger" type="submit">×</button>
-                </form>
-            </td>
-        </tr>
-        <tr id="edit-{{ b.id }}" class="edit-row" hidden>
-            <td colspan="7">
-                {{ form_bega(b, url_for('bega_modifica', bid=b.id), "Salva modifiche") }}
-            </td>
-        </tr>
+    {% if commesse %}
+        {% for c in commesse %}
+        <div class="comm-group">
+            <h3 class="comm-title">{{ c.nome or '(nessuna commessa)' }} <span class="count">{{ c.beghe|length }}</span></h3>
+            <table class="list beghe">
+                <tbody>
+                {% for b in c.beghe %}
+                <tr class="{{ riga_classe(b, oggi) }}">
+                    <td class="check">
+                        <form method="post" action="{{ url_for('bega_toggle', bid=b.id) }}">
+                            <button type="submit" class="checkbox {{ 'done' if b.stato=='Risolta' }}"
+                                    title="Segna come {{ 'da riaprire' if b.stato=='Risolta' else 'risolta' }}">
+                                {{ '✓' if b.stato=='Risolta' else '' }}
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        <a class="strong {{ 'struck' if b.stato=='Risolta' }}" href="{{ url_for('bega_detail', bid=b.id) }}">{{ b.titolo }}</a>
+                        {% if b.descrizione %}<div class="muted small">{{ b.descrizione }}</div>{% endif %}
+                        {% if b.riferimenti %}<div class="refs">Rif.: {{ b.riferimenti }}</div>{% endif %}
+                    </td>
+                    <td><span class="tag prio-{{ b.priorita|lower }}">{{ b.priorita }}</span></td>
+                    <td><span class="tag stato-{{ b.stato|lower|replace(' ','-') }}">{{ b.stato }}</span></td>
+                    <td>{% if b.data_consegna %}{{ b.data_consegna[8:10] }}/{{ b.data_consegna[5:7] }}/{{ b.data_consegna[0:4] }}{% else %}—{% endif %}</td>
+                    <td class="actions"><a class="btn small ghost" href="{{ url_for('bega_detail', bid=b.id) }}">Apri</a></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% endfor %}
-        </tbody>
-    </table>
     {% else %}
     <p class="empty">Nessuna bega per i filtri attuali. Aggiungine una qui sotto. ↓</p>
     {% endif %}
@@ -121,13 +75,28 @@
 
 <section class="card">
     <div class="card-head"><h2>Nuova bega</h2></div>
-    {{ form_bega(None, url_for('bega_nuova', fid=f.id), "+ Aggiungi bega") }}
+    <form method="post" action="{{ url_for('bega_nuova', fid=f.id) }}" class="form bega-form" enctype="multipart/form-data">
+        <div class="row">
+            <label class="grow">Titolo *<input name="titolo" required placeholder="Es. Ordine 1234 consegnato incompleto"></label>
+            <label>Commessa<input name="commessa" placeholder="Es. 250040"></label>
+        </div>
+        <label>Descrizione<textarea name="descrizione" rows="2"></textarea></label>
+        <label>Riferimenti (ordini, DDT, fatture, link)<input name="riferimenti" placeholder="Ordine #1234 · DDT 56"></label>
+        <div class="row">
+            <label>Categoria<select name="categoria">
+                <option value="">—</option>
+                {% for cat in CATEGORIE %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}
+            </select></label>
+            <label>Priorità<select name="priorita">
+                {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if p=='Media' }}>{{ p }}</option>{% endfor %}
+            </select></label>
+            <label>Stato<select name="stato">
+                {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if s=='Aperta' }}>{{ s }}</option>{% endfor %}
+            </select></label>
+            <label>Data consegna ordine<input type="date" name="data_consegna"></label>
+        </div>
+        <label>Allegati PDF<input type="file" name="allegati" accept="application/pdf" multiple></label>
+        <button class="btn primary" type="submit">+ Aggiungi bega</button>
+    </form>
 </section>
-
-<script>
-    function apriModifica(id) {
-        const row = document.getElementById('edit-' + id);
-        if (row) row.hidden = !row.hidden;
-    }
-</script>
 {% endblock %}

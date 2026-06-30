@@ -1,11 +1,10 @@
-/* Mappa concettuale: ogni bega (nodo colorato) punta al suo fornitore.
-   Layout ad albero: fornitori in riga in alto, beghe incolonnate sotto.
+/* Mappa concettuale a 3 livelli: fornitore -> commessa -> bega.
+   Le beghe risolte sono gia' escluse dal backend.
+   Layout ad albero orizzontale con connettori curvi (bezier).
    Niente librerie esterne.
 
-   Nota: le dimensioni dei rettangoli si calcolano da getBBox() del testo,
-   ma getBBox() e' affidabile solo dopo che il browser ha fatto il layout.
-   Per questo i nodi vengono creati subito e poi misurati/dimensionati
-   dentro un requestAnimationFrame (vedi finalize()). */
+   Nota: getBBox() del testo e' affidabile solo a layout avvenuto, quindi i
+   rettangoli si dimensionano dentro requestAnimationFrame (vedi finalize()). */
 (function () {
     "use strict";
 
@@ -15,39 +14,40 @@
     const canvas = document.getElementById("map-canvas");
     const tip = document.getElementById("map-tip");
 
+    // colonne x dei tre livelli e passi verticali
+    const X_FORN = 110, X_COMM = 440, X_BEGA = 790;
+    const STEP = 46;   // passo verticale tra beghe
+    const GAP_COMM = 24, GAP_FORN = 44;
+
     function el(name, attrs) {
         const e = document.createElementNS(SVGNS, name);
         if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
         return e;
     }
-
     function dataIt(iso) {
         if (!iso) return "—";
         return iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
     }
+    function tronca(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+    function media(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 
-    function tronca(s, n) {
-        return s.length > n ? s.slice(0, n - 1) + "…" : s;
-    }
-
-    // ----- Layout ad albero: fornitori in riga in alto, beghe incolonnate sotto ----- //
-    const COL_W = 240;   // larghezza colonna per fornitore
-    const TOP_Y = 40;    // riga dei fornitori
-    const START_Y = 150; // prima bega sotto al fornitore
-    const GAP_Y = 60;    // distanza verticale tra le beghe
-
+    // ----- Layout: assegna x,y a fornitori/commesse/beghe ----- //
     function layout(grafo) {
-        grafo.forEach((f, i) => {
-            f.x = i * COL_W + COL_W / 2;
-            f.y = TOP_Y;
-            f.beghe.forEach((b, j) => {
-                b.x = f.x;
-                b.y = START_Y + j * GAP_Y;
+        let y = 30;
+        grafo.forEach((f) => {
+            f.commesse.forEach((c) => {
+                c.beghe.forEach((b) => { b.x = X_BEGA; b.y = y; y += STEP; });
+                c.x = X_COMM;
+                c.y = media(c.beghe.map((b) => b.y));
+                y += GAP_COMM;
             });
+            f.x = X_FORN;
+            f.y = media(f.commesse.map((c) => c.y));
+            y += GAP_FORN;
         });
     }
 
-    // Crea un nodo (rect + label) senza dimensionarlo ancora.
+    // ----- Nodi ----- //
     function creaNodo(group, label) {
         const rect = el("rect");
         const text = el("text", { "text-anchor": "middle", dy: "0.32em", class: "node-label" });
@@ -56,19 +56,16 @@
         group.appendChild(text);
         return { rect, text };
     }
-
-    // Dimensiona il rect attorno al testo (da chiamare a layout avvenuto).
     function dimensiona(rect, text, kind) {
         const bb = text.getBBox();
         const padX = kind === "fornitore" ? 18 : 11;
         const padY = kind === "fornitore" ? 11 : 7;
-        const w = bb.width + padX * 2;
-        const h = bb.height + padY * 2;
+        const w = bb.width + padX * 2, h = bb.height + padY * 2;
         rect.setAttribute("x", -w / 2);
         rect.setAttribute("y", -h / 2);
         rect.setAttribute("width", w);
         rect.setAttribute("height", h);
-        rect.setAttribute("rx", kind === "fornitore" ? 9 : 13);
+        rect.setAttribute("rx", kind === "fornitore" ? 9 : kind === "commessa" ? 7 : 13);
         return { w, h };
     }
 
@@ -76,23 +73,27 @@
     function mostraTip(html, e) { tip.innerHTML = html; tip.hidden = false; muoviTip(e); }
     function muoviTip(e) {
         const r = canvas.getBoundingClientRect();
-        let x = e.clientX - r.left + 14;
-        let y = e.clientY - r.top + 14;
+        let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
         if (x + tip.offsetWidth > r.width) x = e.clientX - r.left - tip.offsetWidth - 14;
         if (y + tip.offsetHeight > r.height) y = e.clientY - r.top - tip.offsetHeight - 14;
         tip.style.left = x + "px";
         tip.style.top = y + "px";
     }
     function nascondiTip() { tip.hidden = true; }
-
     function agganciaHandlers(g, html, url) {
         g.addEventListener("mouseenter", (e) => mostraTip(html, e));
         g.addEventListener("mousemove", muoviTip);
         g.addEventListener("mouseleave", nascondiTip);
-        g.addEventListener("click", () => { if (!dragged) location.href = url; });
+        if (url) g.addEventListener("click", () => { if (!dragged) location.href = url; });
     }
 
-    // ----- Costruzione grafo ----- //
+    // curva bezier orizzontale da (x1,y1) a (x2,y2)
+    function curva(x1, y1, x2, y2) {
+        const mx = (x1 + x2) / 2;
+        return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    }
+
+    // ----- Costruzione ----- //
     let nodesGroup = null;
 
     function build(grafo) {
@@ -104,74 +105,80 @@
         viewport.appendChild(nodes);
         nodesGroup = nodes;
 
-        const fItems = [];
-        const bItems = [];
+        const items = []; // {ref, rect, text, kind}
 
-        // nodi fornitore
         grafo.forEach((f) => {
             const g = el("g", { transform: `translate(${f.x},${f.y})`, class: "node fornitore" });
-            const { rect, text } = creaNodo(g, tronca(f.nome, 24) + "  ·  " + f.beghe.length);
-            agganciaHandlers(g, `<b>${f.nome}</b><br>${f.beghe.length} beghe mostrate`, f.url);
+            const { rect, text } = creaNodo(g, tronca(f.nome, 24));
+            const n = f.commesse.reduce((s, c) => s + c.beghe.length, 0);
+            agganciaHandlers(g, `<b>${f.nome}</b><br>${n} beghe aperte`, f.url);
             nodes.appendChild(g);
-            fItems.push({ f, rect, text });
-        });
+            items.push({ ref: f, rect, text, kind: "fornitore" });
 
-        // nodi bega
-        grafo.forEach((f) => {
-            f.beghe.forEach((b) => {
-                const g = el("g", { transform: `translate(${b.x},${b.y})`, class: "node bega " + b.colore });
-                const { rect, text } = creaNodo(g, tronca(b.titolo, 22));
-                const html =
-                    `<b>${b.titolo}</b><br>Stato: ${b.stato} · Priorità: ${b.priorita}` +
-                    `<br>Categoria: ${b.categoria || "—"}<br>Consegna: ${dataIt(b.consegna)}`;
-                agganciaHandlers(g, html, f.url);
-                nodes.appendChild(g);
-                bItems.push({ b, f, rect, text });
+            f.commesse.forEach((c) => {
+                const gc = el("g", { transform: `translate(${c.x},${c.y})`, class: "node commessa" });
+                const r2 = creaNodo(gc, tronca(c.nome, 18));
+                agganciaHandlers(gc, `<b>${c.nome}</b><br>${c.beghe.length} beghe`, null);
+                nodes.appendChild(gc);
+                items.push({ ref: c, rect: r2.rect, text: r2.text, kind: "commessa" });
+
+                c.beghe.forEach((b) => {
+                    const gb = el("g", { transform: `translate(${b.x},${b.y})`, class: "node bega " + b.colore });
+                    const r3 = creaNodo(gb, tronca(b.titolo, 22));
+                    const html =
+                        `<b>${b.titolo}</b><br>Stato: ${b.stato} · Priorità: ${b.priorita}` +
+                        `<br>Categoria: ${b.categoria || "—"}<br>Consegna: ${dataIt(b.consegna)}`;
+                    agganciaHandlers(gb, html, b.url);
+                    nodes.appendChild(gb);
+                    items.push({ ref: b, rect: r3.rect, text: r3.text, kind: "bega" });
+                });
             });
         });
 
-        // misura e disegna (a layout avvenuto)
         function finalize() {
-            fItems.forEach(({ f, rect, text }) => {
-                const d = dimensiona(rect, text, "fornitore");
-                f.hw = d.w / 2;
-                f.hh = d.h / 2;
+            items.forEach(({ ref, rect, text, kind }) => {
+                const d = dimensiona(rect, text, kind);
+                ref.hw = d.w / 2;
             });
-            bItems.forEach(({ rect, text }) => dimensiona(rect, text, "bega"));
-
+            // connettori child -> parent (freccia verso il fornitore)
             grafo.forEach((f) => {
-                if (!f.beghe.length) return;
-                const ultima = f.beghe[f.beghe.length - 1];
-                // freccia dall'ultima bega su fino al bordo inferiore del fornitore
-                links.appendChild(el("line", {
-                    x1: f.x, y1: ultima.y, x2: f.x, y2: f.y + f.hh + 4,
-                    class: "link", "marker-end": "url(#arrow)",
-                }));
+                f.commesse.forEach((c) => {
+                    links.appendChild(el("path", {
+                        d: curva(c.x - c.hw, c.y, f.x + f.hw + 4, f.y),
+                        class: "link", "marker-end": "url(#arrow)", fill: "none",
+                    }));
+                    c.beghe.forEach((b) => {
+                        links.appendChild(el("path", {
+                            d: curva(b.x - b.hw, b.y, c.x + c.hw + 4, c.y),
+                            class: "link link-" + b.colore, "marker-end": "url(#arrow)", fill: "none",
+                        }));
+                    });
+                });
             });
-
             fit();
         }
-        requestAnimationFrame(finalize);
+        // getBBox e' affidabile solo a layout avvenuto: lo rinviamo.
+        // rAF per il caso normale + setTimeout come fallback (rAF e' sospeso
+        // quando la tab non e' in primo piano).
+        let fatto = false;
+        const once = () => { if (!fatto) { fatto = true; finalize(); } };
+        requestAnimationFrame(once);
+        setTimeout(once, 80);
     }
 
     // ----- Pan & zoom ----- //
     const view = { x: 0, y: 0, k: 1 };
-    function apply() {
-        viewport.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
-    }
+    function apply() { viewport.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`); }
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
     function zoomAt(factor, mx, my) {
-        const wx = (mx - view.x) / view.k;
-        const wy = (my - view.y) / view.k;
+        const wx = (mx - view.x) / view.k, wy = (my - view.y) / view.k;
         view.k = clamp(view.k * factor, 0.2, 3);
         view.x = mx - wx * view.k;
         view.y = my - wy * view.k;
         apply();
     }
 
-    let dragged = false;
-    let panning = false;
+    let dragged = false, panning = false;
     let startX = 0, startY = 0, originX = 0, originY = 0;
 
     svg.addEventListener("wheel", (e) => {
@@ -179,19 +186,15 @@
         const r = svg.getBoundingClientRect();
         zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top);
     }, { passive: false });
-
     svg.addEventListener("mousedown", (e) => {
         panning = true; dragged = false;
-        startX = e.clientX; startY = e.clientY;
-        originX = view.x; originY = view.y;
+        startX = e.clientX; startY = e.clientY; originX = view.x; originY = view.y;
     });
     window.addEventListener("mousemove", (e) => {
         if (!panning) return;
         const dx = e.clientX - startX, dy = e.clientY - startY;
         if (Math.abs(dx) + Math.abs(dy) > 4) dragged = true;
-        view.x = originX + dx;
-        view.y = originY + dy;
-        apply();
+        view.x = originX + dx; view.y = originY + dy; apply();
     });
     window.addEventListener("mouseup", () => { panning = false; });
 
@@ -207,47 +210,13 @@
         apply();
     }
 
-    // ----- Vista: filtro risolte + ordinamento + conteggio ----- //
-    const RANK_PRIORITA = { Alta: 0, Media: 1, Bassa: 2 };
-
-    function ordinaBeghe(beghe, criterio) {
-        const out = beghe.slice();
-        out.sort((a, b) => {
-            if (criterio === "priorita") {
-                return (RANK_PRIORITA[a.priorita] ?? 9) - (RANK_PRIORITA[b.priorita] ?? 9);
-            }
-            if (criterio === "titolo") {
-                return a.titolo.localeCompare(b.titolo, "it");
-            }
-            // scadenza (default): per data crescente, senza data in fondo
-            if (!a.consegna && !b.consegna) return 0;
-            if (!a.consegna) return 1;
-            if (!b.consegna) return -1;
-            return a.consegna < b.consegna ? -1 : a.consegna > b.consegna ? 1 : 0;
-        });
-        return out;
-    }
-
-    function vista() {
-        const mostraRisolte = document.getElementById("toggle-risolte").checked;
-        const criterio = document.getElementById("ordina").value;
-        return GRAFO.map((f) => {
-            const beghe = f.beghe.filter((b) => mostraRisolte || b.stato !== "Risolta");
-            return Object.assign({}, f, { beghe: ordinaBeghe(beghe, criterio) });
-        });
-    }
-
-    function render() { build(vista()); }
-
     // ----- Avvio ----- //
     function start() {
         if (!GRAFO.length) {
             document.getElementById("map-empty").hidden = false;
             return;
         }
-        document.getElementById("toggle-risolte").addEventListener("change", render);
-        document.getElementById("ordina").addEventListener("change", render);
-        render();
+        build(GRAFO);
     }
 
     window.MAP = {
