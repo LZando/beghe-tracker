@@ -53,8 +53,8 @@
             const b = n.bega;
             return (
                 (b.has_pdf ? '<span class="m-pdf" title="PDF allegato">PDF</span>' : "") +
-                '<div class="m-bega-title">' + esc(b.titolo) + "</div>" +
-                (b.descrizione ? '<div class="m-bega-desc">' + esc(b.descrizione) + "</div>" : "") +
+                '<div class="m-bega-title">' + esc(b.descrizione) + "</div>" +
+                (b.azione ? '<div class="m-bega-desc">Azione: ' + esc(b.azione) + "</div>" : "") +
                 '<div class="m-bega-meta"><span class="tag prio-' + b.priorita.toLowerCase() + '">' +
                     b.priorita + '</span><span class="tag stato-' +
                     b.stato.toLowerCase().replace(/ /g, "-") + '">' + b.stato + "</span></div>"

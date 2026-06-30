@@ -43,7 +43,6 @@ app.config["SECRET_KEY"] = "dev-cambiami-in-produzione"
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25 MB per upload
 
 # Valori di catalogo: tenerli qui rende banale aggiungerne di nuovi.
-CATEGORIE = ["Ritardo consegna", "Qualità", "Fatturazione", "Amministrativo", "Altro"]
 PRIORITA = ["Bassa", "Media", "Alta"]
 STATI = ["Aperta", "In lavorazione", "Risolta"]
 
@@ -66,6 +65,24 @@ def close_db(_exc):
         db.close()
 
 
+BEGHE_SCHEMA = """
+    CREATE TABLE {name} (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        fornitore_id   INTEGER NOT NULL REFERENCES fornitori(id) ON DELETE CASCADE,
+        commessa       TEXT,
+        descrizione    TEXT,
+        azione         TEXT,
+        riferimenti    TEXT,
+        priorita       TEXT NOT NULL DEFAULT 'Media',
+        stato          TEXT NOT NULL DEFAULT 'Aperta',
+        data_apertura  TEXT NOT NULL DEFAULT (date('now')),
+        data_consegna  TEXT,
+        data_chiusura  TEXT,
+        creato_il      TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+"""
+
+
 def init_db():
     db = sqlite3.connect(DB_PATH)
     db.executescript(
@@ -80,23 +97,6 @@ def init_db():
             creato_il     TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS beghe (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            fornitore_id   INTEGER NOT NULL REFERENCES fornitori(id) ON DELETE CASCADE,
-            titolo         TEXT NOT NULL,
-            descrizione    TEXT,
-            riferimenti    TEXT,
-            categoria      TEXT,
-            commessa       TEXT,
-            priorita       TEXT NOT NULL DEFAULT 'Media',
-            stato          TEXT NOT NULL DEFAULT 'Aperta',
-            importo        REAL,
-            data_apertura  TEXT NOT NULL DEFAULT (date('now')),
-            data_consegna  TEXT,
-            data_chiusura  TEXT,
-            creato_il      TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-
         CREATE TABLE IF NOT EXISTS allegati (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
             bega_id       INTEGER NOT NULL REFERENCES beghe(id) ON DELETE CASCADE,
@@ -106,10 +106,35 @@ def init_db():
         );
         """
     )
-    # Migrazione per DB esistenti: aggiunge la colonna 'commessa' se manca.
-    colonne = [r[1] for r in db.execute("PRAGMA table_info(beghe)").fetchall()]
-    if "commessa" not in colonne:
+    db.executescript(BEGHE_SCHEMA.format(name="IF NOT EXISTS beghe"))
+
+    # ---- Migrazioni idempotenti per DB esistenti ----
+    cols = [r[1] for r in db.execute("PRAGMA table_info(beghe)").fetchall()]
+    if "commessa" not in cols:
         db.execute("ALTER TABLE beghe ADD COLUMN commessa TEXT")
+        cols.append("commessa")
+    if "azione" not in cols:
+        db.execute("ALTER TABLE beghe ADD COLUMN azione TEXT")
+        cols.append("azione")
+    # Rimozione di titolo/categoria/importo: ricostruisce la tabella (compatibile
+    # con ogni versione di SQLite). Il vecchio 'titolo' confluisce in 'descrizione'.
+    if any(c in cols for c in ("titolo", "categoria", "importo")):
+        desc = "COALESCE(NULLIF(descrizione, ''), titolo)" if "titolo" in cols else "descrizione"
+        db.executescript(
+            BEGHE_SCHEMA.format(name="beghe_new")
+            + f"""
+            ;INSERT INTO beghe_new
+                (id, fornitore_id, commessa, descrizione, azione, riferimenti,
+                 priorita, stato, data_apertura, data_consegna, data_chiusura, creato_il)
+              SELECT id, fornitore_id, commessa, {desc}, azione, riferimenti,
+                     COALESCE(priorita, 'Media'), COALESCE(stato, 'Aperta'),
+                     COALESCE(data_apertura, date('now')), data_consegna, data_chiusura,
+                     COALESCE(creato_il, datetime('now'))
+              FROM beghe;
+            DROP TABLE beghe;
+            ALTER TABLE beghe_new RENAME TO beghe;
+            """
+        )
     db.commit()
     db.close()
 
@@ -159,7 +184,6 @@ def raggruppa_per_commessa(beghe, oggi):
 @app.context_processor
 def inject_globals():
     return {
-        "CATEGORIE": CATEGORIE,
         "PRIORITA": PRIORITA,
         "STATI": STATI,
         "riga_classe": riga_classe,
@@ -210,8 +234,8 @@ def index():
                     "beghe": [
                         {
                             "id": b["id"],
-                            "titolo": b["titolo"],
                             "descrizione": b["descrizione"],
+                            "azione": b["azione"],
                             "priorita": b["priorita"],
                             "stato": b["stato"],
                             "colore": b["colore"],
@@ -278,7 +302,7 @@ def fornitore(fid):
         sql += " AND priorita = ?"
         params.append(priorita)
     if q:
-        sql += " AND (titolo LIKE ? OR descrizione LIKE ? OR riferimenti LIKE ? OR commessa LIKE ?)"
+        sql += " AND (descrizione LIKE ? OR azione LIKE ? OR riferimenti LIKE ? OR commessa LIKE ?)"
         params += [f"%{q}%"] * 4
     sql += """
         ORDER BY (commessa IS NULL), commessa,
@@ -324,11 +348,10 @@ def _form_bega():
         return v or None
 
     return {
-        "titolo": clean("titolo"),
-        "descrizione": clean("descrizione"),
-        "riferimenti": clean("riferimenti"),
-        "categoria": clean("categoria"),
         "commessa": clean("commessa"),
+        "descrizione": clean("descrizione"),
+        "azione": clean("azione"),
+        "riferimenti": clean("riferimenti"),
         "priorita": request.form.get("priorita") or "Media",
         "stato": request.form.get("stato") or "Aperta",
         "data_consegna": clean("data_consegna"),
@@ -380,23 +403,22 @@ def bega_detail(bid):
 @app.route("/fornitore/<int:fid>/bega/nuova", methods=["POST"])
 def bega_nuova(fid):
     dati = _form_bega()
-    if not dati["titolo"]:
-        flash("Il titolo della bega è obbligatorio.", "error")
+    if not dati["descrizione"]:
+        flash("La descrizione della bega è obbligatoria.", "error")
         return redirect(url_for("fornitore", fid=fid))
     db = get_db()
     chiusura = date.today().isoformat() if dati["stato"] == "Risolta" else None
     cur = db.execute(
         """INSERT INTO beghe
-           (fornitore_id, titolo, descrizione, riferimenti, categoria, commessa,
+           (fornitore_id, commessa, descrizione, azione, riferimenti,
             priorita, stato, data_consegna, data_chiusura)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?)""",
         (
             fid,
-            dati["titolo"],
-            dati["descrizione"],
-            dati["riferimenti"],
-            dati["categoria"],
             dati["commessa"],
+            dati["descrizione"],
+            dati["azione"],
+            dati["riferimenti"],
             dati["priorita"],
             dati["stato"],
             dati["data_consegna"],
@@ -418,8 +440,8 @@ def bega_modifica(bid):
         flash("Bega non trovata.", "error")
         return redirect(url_for("index"))
     dati = _form_bega()
-    if not dati["titolo"]:
-        flash("Il titolo della bega è obbligatorio.", "error")
+    if not dati["descrizione"]:
+        flash("La descrizione della bega è obbligatoria.", "error")
         return redirect(url_for("bega_detail", bid=bid))
     if dati["stato"] == "Risolta":
         chiusura = bega["data_chiusura"] or date.today().isoformat()
@@ -427,15 +449,14 @@ def bega_modifica(bid):
         chiusura = None
     db.execute(
         """UPDATE beghe SET
-             titolo=?, descrizione=?, riferimenti=?, categoria=?, commessa=?,
+             commessa=?, descrizione=?, azione=?, riferimenti=?,
              priorita=?, stato=?, data_consegna=?, data_chiusura=?
            WHERE id=?""",
         (
-            dati["titolo"],
-            dati["descrizione"],
-            dati["riferimenti"],
-            dati["categoria"],
             dati["commessa"],
+            dati["descrizione"],
+            dati["azione"],
+            dati["riferimenti"],
             dati["priorita"],
             dati["stato"],
             dati["data_consegna"],
@@ -540,10 +561,10 @@ def mappa():
                     "beghe": [
                         {
                             "id": b["id"],
-                            "titolo": b["titolo"],
+                            "descrizione": b["descrizione"],
+                            "azione": b["azione"],
                             "stato": b["stato"],
                             "priorita": b["priorita"],
-                            "categoria": b["categoria"],
                             "consegna": b["data_consegna"],
                             "colore": b["colore"],
                             "url": url_for("bega_detail", bid=b["id"]),
@@ -571,8 +592,8 @@ def export_csv():
     db = get_db()
     righe = db.execute(
         """
-        SELECT f.nome AS fornitore, b.commessa, b.titolo, b.categoria, b.priorita, b.stato,
-               b.data_apertura, b.data_consegna, b.data_chiusura, b.riferimenti, b.descrizione
+        SELECT f.nome AS fornitore, b.commessa, b.descrizione, b.azione, b.priorita, b.stato,
+               b.data_apertura, b.data_consegna, b.data_chiusura, b.riferimenti
         FROM beghe b JOIN fornitori f ON f.id = b.fornitore_id
         ORDER BY f.nome, b.commessa, b.data_consegna
         """
@@ -581,8 +602,8 @@ def export_csv():
     w = csv.writer(buf, delimiter=";")
     w.writerow(
         [
-            "Fornitore", "Commessa", "Titolo", "Categoria", "Priorità", "Stato",
-            "Data apertura", "Data consegna", "Data chiusura", "Riferimenti", "Descrizione",
+            "Fornitore", "Commessa", "Descrizione", "Azione", "Priorità", "Stato",
+            "Data apertura", "Data consegna", "Data chiusura", "Riferimenti",
         ]
     )
     for r in righe:

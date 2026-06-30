@@ -124,10 +124,11 @@
 
                 c.beghe.forEach((b) => {
                     const gb = el("g", { transform: `translate(${b.x},${b.y})`, class: "node bega " + b.colore });
-                    const r3 = creaNodo(gb, tronca(b.titolo, 22));
+                    const r3 = creaNodo(gb, tronca(b.descrizione || "(senza descrizione)", 24));
                     const html =
-                        `<b>${b.titolo}</b><br>Stato: ${b.stato} · Priorità: ${b.priorita}` +
-                        `<br>Categoria: ${b.categoria || "—"}<br>Consegna: ${dataIt(b.consegna)}`;
+                        `<b>${b.descrizione || "(senza descrizione)"}</b><br>Stato: ${b.stato} · Priorità: ${b.priorita}` +
+                        (b.azione ? `<br>Azione: ${b.azione}` : "") +
+                        `<br>Consegna: ${dataIt(b.consegna)}`;
                     agganciaHandlers(gb, html, b.url);
                     nodes.appendChild(gb);
                     items.push({ ref: b, rect: r3.rect, text: r3.text, kind: "bega" });

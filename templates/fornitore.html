@@ -22,7 +22,7 @@
     </div>
 
     <form method="get" class="filters">
-        <input name="q" value="{{ filtro.q }}" placeholder="Cerca titolo / riferimenti / commessa...">
+        <input name="q" value="{{ filtro.q }}" placeholder="Cerca descrizione / azione / commessa...">
         <select name="stato">
             <option value="">Tutti gli stati</option>
             {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if filtro.stato==s }}>{{ s }}</option>{% endfor %}
@@ -54,8 +54,8 @@
                         </form>
                     </td>
                     <td>
-                        <a class="strong {{ 'struck' if b.stato=='Risolta' }}" href="{{ url_for('bega_detail', bid=b.id) }}">{{ b.titolo }}</a>
-                        {% if b.descrizione %}<div class="muted small">{{ b.descrizione }}</div>{% endif %}
+                        <a class="strong {{ 'struck' if b.stato=='Risolta' }}" href="{{ url_for('bega_detail', bid=b.id) }}">{{ b.descrizione or '(senza descrizione)' }}</a>
+                        {% if b.azione %}<div class="muted small">Azione: {{ b.azione }}</div>{% endif %}
                         {% if b.riferimenti %}<div class="refs">Rif.: {{ b.riferimenti }}</div>{% endif %}
                     </td>
                     <td><span class="tag prio-{{ b.priorita|lower }}">{{ b.priorita }}</span></td>
@@ -77,16 +77,12 @@
     <div class="card-head"><h2>Nuova bega</h2></div>
     <form method="post" action="{{ url_for('bega_nuova', fid=f.id) }}" class="form bega-form" enctype="multipart/form-data">
         <div class="row">
-            <label class="grow">Titolo *<input name="titolo" required placeholder="Es. Ordine 1234 consegnato incompleto"></label>
+            <label class="grow">Descrizione *<input name="descrizione" required placeholder="Es. Ordine consegnato incompleto"></label>
             <label>Commessa<input name="commessa" placeholder="Es. 250040"></label>
         </div>
-        <label>Descrizione<textarea name="descrizione" rows="2"></textarea></label>
+        <label>Azione<textarea name="azione" rows="2" placeholder="Cosa fare / cosa è stato fatto"></textarea></label>
         <label>Riferimenti (ordini, DDT, fatture, link)<input name="riferimenti" placeholder="Ordine #1234 · DDT 56"></label>
         <div class="row">
-            <label>Categoria<select name="categoria">
-                <option value="">—</option>
-                {% for cat in CATEGORIE %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}
-            </select></label>
             <label>Priorità<select name="priorita">
                 {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if p=='Media' }}>{{ p }}</option>{% endfor %}
             </select></label>

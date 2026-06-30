@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ b.titolo }} — Beghe Tracker{% endblock %}
+{% block title %}{{ (b.descrizione or 'Bega')[:40] }} — Beghe Tracker{% endblock %}
 
 {% block content %}
 <a class="back" href="{{ url_for('fornitore', fid=f.id) }}">← {{ f.nome }}</a>
@@ -7,26 +7,22 @@
 <div class="bega-detail">
     <section class="card">
         <div class="card-head">
-            <h2 class="{{ 'struck' if b.stato=='Risolta' }}">{{ b.titolo }}</h2>
+            <h2 class="{{ 'struck' if b.stato=='Risolta' }}">{{ b.descrizione or '(senza descrizione)' }}</h2>
             <span class="tag stato-{{ b.stato|lower|replace(' ','-') }}">{{ b.stato }}</span>
         </div>
         <p class="muted">
             {{ f.nome }}{% if b.commessa %} · Commessa <strong>{{ b.commessa }}</strong>{% endif %}
-            · Priorità {{ b.priorita }}{% if b.categoria %} · {{ b.categoria }}{% endif %}
+            · Priorità {{ b.priorita }}
         </p>
 
         <form method="post" action="{{ url_for('bega_modifica', bid=b.id) }}" class="form bega-form" enctype="multipart/form-data">
             <div class="row">
-                <label class="grow">Titolo *<input name="titolo" required value="{{ b.titolo }}"></label>
+                <label class="grow">Descrizione *<input name="descrizione" required value="{{ b.descrizione or '' }}"></label>
                 <label>Commessa<input name="commessa" value="{{ b.commessa or '' }}" placeholder="Es. 250040"></label>
             </div>
-            <label>Descrizione<textarea name="descrizione" rows="3">{{ b.descrizione or '' }}</textarea></label>
+            <label>Azione<textarea name="azione" rows="3" placeholder="Cosa fare / cosa è stato fatto">{{ b.azione or '' }}</textarea></label>
             <label>Riferimenti<input name="riferimenti" value="{{ b.riferimenti or '' }}"></label>
             <div class="row">
-                <label>Categoria<select name="categoria">
-                    <option value="">—</option>
-                    {% for cat in CATEGORIE %}<option value="{{ cat }}" {{ 'selected' if b.categoria==cat }}>{{ cat }}</option>{% endfor %}
-                </select></label>
                 <label>Priorità<select name="priorita">
                     {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if b.priorita==p }}>{{ p }}</option>{% endfor %}
                 </select></label>
