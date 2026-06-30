@@ -1,5 +1,6 @@
 /* Mappa concettuale: ogni bega (nodo colorato) punta al suo fornitore.
-   Layout deterministico a cluster radiali, niente librerie esterne.
+   Layout ad albero: fornitori in riga in alto, beghe incolonnate sotto.
+   Niente librerie esterne.
 
    Nota: le dimensioni dei rettangoli si calcolano da getBBox() del testo,
    ma getBBox() e' affidabile solo dopo che il browser ha fatto il layout.
