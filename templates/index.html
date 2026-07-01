@@ -59,21 +59,31 @@
 <section class="card">
     <h2 class="card-title">Dettaglio Beghe e Fornitori</h2>
 
-    <details class="nuovo-forn">
-        <summary class="btn primary">+ Aggiungi fornitore</summary>
-        <form method="post" action="{{ url_for('fornitore_nuovo') }}" class="form card-inset">
-            <div class="row">
-                <label class="grow">Nome *<input name="nome" required placeholder="Es. ART Alluminio"></label>
-                <label>Referente<input name="referente" placeholder="Es. Mario Rossi"></label>
+    <button type="button" class="btn primary" data-open-modal="modal-fornitore">+ Aggiungi fornitore</button>
+
+    <dialog id="modal-fornitore">
+        <div class="modal-inner">
+            <div class="modal-head">
+                <h2>Nuovo fornitore</h2>
+                <button type="button" class="modal-close" data-close-modal aria-label="Chiudi">&times;</button>
             </div>
-            <div class="row">
-                <label>Email<input name="email" type="email"></label>
-                <label>Telefono<input name="telefono"></label>
-            </div>
-            <label>Note<textarea name="note" rows="2"></textarea></label>
-            <button class="btn primary" type="submit">Salva fornitore</button>
-        </form>
-    </details>
+            <form method="post" action="{{ url_for('fornitore_nuovo') }}" class="form">
+                <div class="row">
+                    <label class="grow">Nome *<input name="nome" required placeholder="Es. ART Alluminio"></label>
+                    <label>Referente<input name="referente" placeholder="Es. Mario Rossi"></label>
+                </div>
+                <div class="row">
+                    <label>Email<input name="email" type="email"></label>
+                    <label>Telefono<input name="telefono"></label>
+                </div>
+                <label>Note<textarea name="note" rows="2"></textarea></label>
+                <div class="row-actions">
+                    <button class="btn primary" type="submit">Salva fornitore</button>
+                    <button class="btn ghost" type="button" data-close-modal>Annulla</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
 
     {% if alberi %}
     <div id="mind" class="mind">

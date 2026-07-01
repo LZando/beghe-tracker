@@ -15,10 +15,13 @@
             </p>
             {% if f.note %}<p class="muted">{{ f.note }}</p>{% endif %}
         </div>
-        <form method="post" action="{{ url_for('fornitore_elimina', fid=f.id) }}"
-              onsubmit="return confirm('Eliminare il fornitore e tutte le sue beghe?')">
-            <button class="btn ghost danger" type="submit">Elimina fornitore</button>
-        </form>
+        <div class="head-actions">
+            <button type="button" class="btn primary" data-open-modal="modal-bega">+ Nuova bega</button>
+            <form method="post" action="{{ url_for('fornitore_elimina', fid=f.id) }}"
+                  onsubmit="return confirm('Eliminare il fornitore e tutte le sue beghe?')">
+                <button class="btn ghost danger" type="submit">Elimina fornitore</button>
+            </form>
+        </div>
     </div>
 
     <form method="get" class="filters">
@@ -69,34 +72,42 @@
         </div>
         {% endfor %}
     {% else %}
-    <p class="empty">Nessuna bega per i filtri attuali. Aggiungine una qui sotto. ↓</p>
+    <p class="empty">Nessuna bega per i filtri attuali. Aggiungine una col pulsante «+ Nuova bega».</p>
     {% endif %}
 </section>
 
-<section class="card">
-    <div class="card-head"><h2>Nuova bega</h2></div>
-    <form method="post" action="{{ url_for('bega_nuova', fid=f.id) }}" class="form bega-form" enctype="multipart/form-data">
-        <div class="row">
-            <label class="grow">Descrizione *<input name="descrizione" required placeholder="Es. Ordine consegnato incompleto"></label>
-            <label>Commessa<input name="commessa" placeholder="Es. 250040"></label>
+<dialog id="modal-bega">
+    <div class="modal-inner">
+        <div class="modal-head">
+            <h2>Nuova bega</h2>
+            <button type="button" class="modal-close" data-close-modal aria-label="Chiudi">&times;</button>
         </div>
-        <label>Azione<textarea name="azione" rows="2" placeholder="Cosa fare / cosa è stato fatto"></textarea></label>
-        <label>Riferimenti (ordini, DDT, fatture, link)<input name="riferimenti" placeholder="Ordine #1234 · DDT 56"></label>
-        <div class="row">
-            <label>Priorità<select name="priorita">
-                {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if p=='Media' }}>{{ p }}</option>{% endfor %}
+        <form method="post" action="{{ url_for('bega_nuova', fid=f.id) }}" class="form bega-form" enctype="multipart/form-data">
+            <div class="row">
+                <label class="grow">Descrizione *<input name="descrizione" required placeholder="Es. Ordine consegnato incompleto"></label>
+                <label>Commessa<input name="commessa" placeholder="Es. 250040"></label>
+            </div>
+            <label>Azione<textarea name="azione" rows="2" placeholder="Cosa fare / cosa è stato fatto"></textarea></label>
+            <label>Riferimenti (ordini, DDT, fatture, link)<input name="riferimenti" placeholder="Ordine #1234 · DDT 56"></label>
+            <div class="row">
+                <label>Priorità<select name="priorita">
+                    {% for p in PRIORITA %}<option value="{{ p }}" {{ 'selected' if p=='Media' }}>{{ p }}</option>{% endfor %}
+                </select></label>
+                <label>Stato<select name="stato">
+                    {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if s=='Aperta' }}>{{ s }}</option>{% endfor %}
+                </select></label>
+                <label>Data consegna ordine<input type="date" name="data_consegna"></label>
+            </div>
+            <label>Assegna a<select name="assegnatario_id">
+                <option value="">— Nessuno —</option>
+                {% for u in utenti %}<option value="{{ u.id }}" {{ 'selected' if u.id == user.id }}>{{ nome_utente(u) }}</option>{% endfor %}
             </select></label>
-            <label>Stato<select name="stato">
-                {% for s in STATI %}<option value="{{ s }}" {{ 'selected' if s=='Aperta' }}>{{ s }}</option>{% endfor %}
-            </select></label>
-            <label>Data consegna ordine<input type="date" name="data_consegna"></label>
-        </div>
-        <label>Assegna a<select name="assegnatario_id">
-            <option value="">— Nessuno —</option>
-            {% for u in utenti %}<option value="{{ u.id }}" {{ 'selected' if u.id == user.id }}>{{ nome_utente(u) }}</option>{% endfor %}
-        </select></label>
-        <label>Allegati PDF<input type="file" name="allegati" accept="application/pdf" multiple></label>
-        <button class="btn primary" type="submit">+ Aggiungi bega</button>
-    </form>
-</section>
+            <label>Allegati PDF<input type="file" name="allegati" accept="application/pdf" multiple></label>
+            <div class="row-actions">
+                <button class="btn primary" type="submit">+ Aggiungi bega</button>
+                <button class="btn ghost" type="button" data-close-modal>Annulla</button>
+            </div>
+        </form>
+    </div>
+</dialog>
 {% endblock %}

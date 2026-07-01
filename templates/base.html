@@ -33,8 +33,22 @@
     {% block content %}{% endblock %}
 </main>
 
-<footer class="foot">
-    Prototipo interno · {{ oggi.strftime('%d/%m/%Y') }} · Flask + SQLite
-</footer>
+<script>
+    // Apertura/chiusura modali native <dialog> tramite data-attribute.
+    document.addEventListener('click', (e) => {
+        const opener = e.target.closest('[data-open-modal]');
+        if (opener) {
+            document.getElementById(opener.dataset.openModal)?.showModal();
+            return;
+        }
+        if (e.target.closest('[data-close-modal]')) {
+            e.target.closest('dialog')?.close();
+            return;
+        }
+        // click sullo sfondo (backdrop) chiude la modale
+        if (e.target.tagName === 'DIALOG') e.target.close();
+    });
+</script>
+{% block scripts %}{% endblock %}
 </body>
 </html>
