@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Profilo — Beghe Tracker{% endblock %}
+
+{% block content %}
+<a class="back" href="{{ url_for('index') }}">← Home</a>
+
+<section class="kpis kpis-3">
+    <div class="kpi"><span class="num">{{ stats.fornitori or 0 }}</span><span class="lab">Fornitori</span></div>
+    <div class="kpi"><span class="num">{{ stats.beghe or 0 }}</span><span class="lab">Beghe</span></div>
+    <div class="kpi"><span class="num">{{ stats.assegnate or 0 }}</span><span class="lab">Assegnate a me</span></div>
+</section>
+
+<div class="bega-detail">
+    <section class="card">
+        <div class="card-head"><h2>Dati profilo</h2></div>
+        <p class="muted">Email: <strong>{{ user.email }}</strong></p>
+        <form method="post" action="{{ url_for('profilo') }}" class="form">
+            <input type="hidden" name="azione" value="nome">
+            <label>Nome<input name="nome" value="{{ user.nome or '' }}" placeholder="Il tuo nome"></label>
+            <button class="btn primary" type="submit">Salva nome</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <div class="card-head"><h2>Cambia password</h2></div>
+        <form method="post" action="{{ url_for('profilo') }}" class="form">
+            <input type="hidden" name="azione" value="password">
+            <label>Password attuale<input name="password_attuale" type="password" required></label>
+            <label>Nuova password <span class="opt">(min 6 caratteri)</span>
+                <input name="password_nuova" type="password" minlength="6" required></label>
+            <label>Ripeti nuova password<input name="password_nuova2" type="password" minlength="6" required></label>
+            <button class="btn primary" type="submit">Aggiorna password</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

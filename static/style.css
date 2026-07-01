@@ -35,8 +35,15 @@ a:hover { text-decoration: underline; }
     background: #111827; color: #fff; padding: 12px 24px;
 }
 .topbar .brand { color: #fff; font-weight: 700; font-size: 18px; }
+.topbar nav { display: flex; align-items: center; }
 .topbar nav a { color: #cbd5e1; margin-left: 18px; }
 .topbar nav a:hover { color: #fff; }
+.topbar .nav-sep { width: 1px; height: 18px; background: #374151; margin-left: 18px; }
+.topbar .nav-user { color: #fff; font-weight: 600; }
+.nav-logout { margin-left: 14px; }
+.linklike { background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: #cbd5e1; }
+.linklike:hover { color: #fff; text-decoration: underline; }
+.linklike.danger { color: var(--red); }
 
 .wrap { max-width: 1080px; margin: 24px auto; padding: 0 20px; }
 .foot { text-align: center; color: var(--muted); font-size: 13px; padding: 24px; }
@@ -288,6 +295,43 @@ tr.in-scadenza td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
 .allegato-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid var(--line); }
 .allegato-head a { font-weight: 600; }
 .pdf-preview { width: 100%; height: 460px; border: none; display: block; }
+
+/* ---- auth (login / register) ---- */
+.auth-wrap { max-width: 420px; margin: 40px auto; }
+.auth-card { padding: 26px 26px 22px; }
+.auth-title { margin: 0 0 4px; font-size: 22px; }
+.auth-card .form { margin-top: 16px; }
+.auth-alt { margin: 16px 0 0; font-size: 14px; color: var(--muted); text-align: center; }
+.opt { color: var(--muted); font-weight: 400; font-size: 12px; }
+.kpis-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ---- promemoria scadenze / assegnate ---- */
+.reminders .rem-group { font-size: 13px; margin: 12px 0 6px; }
+.rem-group.danger { color: var(--red); }
+.rem-group.amber { color: var(--amber); }
+.rem-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.rem { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 10px; border-left: 3px solid var(--line); border-radius: 6px; margin-bottom: 5px; }
+.rem.scaduta { border-left-color: var(--red); background: var(--red-bg); }
+.rem.in-scadenza { border-left-color: var(--amber); background: var(--amber-bg); }
+.rem.aperta { border-left-color: var(--brand); background: #f8fafc; }
+.rem a { font-weight: 600; }
+.rem-meta { color: var(--muted); font-size: 13px; }
+.rem-date { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
+
+/* ---- vista assegnatario (sola lettura) ---- */
+.ro-field { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.ro-field .ro-lab { color: var(--muted); min-width: 100px; font-size: 13px; }
+
+/* ---- commenti ---- */
+.comments { list-style: none; margin: 0 0 12px; padding: 0; }
+.comment { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.comment-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.comment-author { font-weight: 700; color: var(--ink); }
+.comment-date { }
+.comment-head form { margin-left: auto; }
+.comment-body { margin-top: 3px; white-space: pre-wrap; }
+.comment-form { margin-top: 6px; }
 
 @media (max-width: 900px) {
     .bega-detail { grid-template-columns: 1fr; }

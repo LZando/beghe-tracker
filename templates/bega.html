@@ -2,7 +2,11 @@
 {% block title %}{{ (b.descrizione or 'Bega')[:40] }} — Beghe Tracker{% endblock %}
 
 {% block content %}
+{% if is_owner %}
 <a class="back" href="{{ url_for('fornitore', fid=f.id) }}">← {{ f.nome }}</a>
+{% else %}
+<a class="back" href="{{ url_for('index') }}">← Home</a>
+{% endif %}
 
 <div class="bega-detail">
     <section class="card">
@@ -13,8 +17,10 @@
         <p class="muted">
             {{ f.nome }}{% if b.commessa %} · Commessa <strong>{{ b.commessa }}</strong>{% endif %}
             · Priorità {{ b.priorita }}
+            {% if assegnatario %} · Assegnata a <strong>{{ nome_utente(assegnatario) }}</strong>{% endif %}
         </p>
 
+        {% if is_owner %}
         <form method="post" action="{{ url_for('bega_modifica', bid=b.id) }}" class="form bega-form" enctype="multipart/form-data">
             <div class="row">
                 <label class="grow">Descrizione *<input name="descrizione" required value="{{ b.descrizione or '' }}"></label>
@@ -31,6 +37,10 @@
                 </select></label>
                 <label>Data consegna ordine<input type="date" name="data_consegna" value="{{ b.data_consegna or '' }}"></label>
             </div>
+            <label>Assegna a<select name="assegnatario_id">
+                <option value="">— Nessuno —</option>
+                {% for u in utenti %}<option value="{{ u.id }}" {{ 'selected' if b.assegnatario_id==u.id }}>{{ nome_utente(u) }}</option>{% endfor %}
+            </select></label>
             <label>Aggiungi allegati PDF<input type="file" name="allegati" accept="application/pdf" multiple></label>
             <div class="row-actions">
                 <button class="btn primary" type="submit">Salva modifiche</button>
@@ -41,6 +51,50 @@
                 </form>
             </div>
         </form>
+        {% else %}
+        {# Vista assegnatario: sola lettura + cambio stato #}
+        <div class="ro-field"><span class="ro-lab">Azione</span><span>{{ b.azione or '—' }}</span></div>
+        <div class="ro-field"><span class="ro-lab">Riferimenti</span><span>{{ b.riferimenti or '—' }}</span></div>
+        <div class="ro-field"><span class="ro-lab">Consegna</span><span>
+            {% if b.data_consegna %}{{ b.data_consegna[8:10] }}/{{ b.data_consegna[5:7] }}/{{ b.data_consegna[0:4] }}{% else %}—{% endif %}
+        </span></div>
+        <p class="muted small">Questa bega ti è stata assegnata: puoi cambiarne lo stato e commentarla, ma solo il proprietario può modificarla.</p>
+        <form method="post" action="{{ url_for('bega_toggle', bid=b.id) }}" class="row-actions">
+            <button class="btn primary" type="submit">
+                {{ 'Riapri bega' if b.stato=='Risolta' else 'Segna come risolta' }}
+            </button>
+        </form>
+        {% endif %}
+    </section>
+
+    <div>
+    <section class="card">
+        <div class="card-head"><h2>Commenti ({{ commenti|length }})</h2></div>
+        {% if commenti %}
+        <ul class="comments">
+            {% for c in commenti %}
+            <li class="comment">
+                <div class="comment-head">
+                    <span class="comment-author">{{ (c.autore_nome or '').strip() or c.autore_email or 'Utente rimosso' }}</span>
+                    <span class="comment-date">{{ c.creato_il[8:10] }}/{{ c.creato_il[5:7] }}/{{ c.creato_il[0:4] }} {{ c.creato_il[11:16] }}</span>
+                    {% if c.user_id == user.id or is_owner %}
+                    <form method="post" action="{{ url_for('commento_elimina', cid=c.id) }}"
+                          onsubmit="return confirm('Eliminare questo commento?')">
+                        <button class="linklike danger small" type="submit">elimina</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="comment-body">{{ c.testo }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty">Nessun commento. Scrivi il primo qui sotto.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('bega_commento', bid=b.id) }}" class="form comment-form">
+            <textarea name="testo" rows="2" placeholder="Aggiungi un commento..." required></textarea>
+            <button class="btn primary small" type="submit">Commenta</button>
+        </form>
     </section>
 
     <section class="card">
@@ -50,17 +104,20 @@
             <div class="allegato">
                 <div class="allegato-head">
                     <a href="{{ url_for('allegato_serve', aid=a.id) }}" target="_blank" rel="noopener">{{ a.nome_file }}</a>
+                    {% if is_owner %}
                     <form method="post" action="{{ url_for('allegato_elimina', aid=a.id) }}"
                           onsubmit="return confirm('Rimuovere questo allegato?')">
                         <button class="btn small ghost danger" type="submit">Rimuovi</button>
                     </form>
+                    {% endif %}
                 </div>
                 <embed class="pdf-preview" src="{{ url_for('allegato_serve', aid=a.id) }}#toolbar=0" type="application/pdf">
             </div>
             {% endfor %}
         {% else %}
-            <p class="empty">Nessun allegato. Caricane uno dal form qui a fianco (campo «Aggiungi allegati PDF»).</p>
+            <p class="empty">Nessun allegato.{% if is_owner %} Caricane uno dal form «Aggiungi allegati PDF».{% endif %}</p>
         {% endif %}
     </section>
+    </div>
 </div>
 {% endblock %}

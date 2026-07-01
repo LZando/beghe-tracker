@@ -91,6 +91,10 @@
             </select></label>
             <label>Data consegna ordine<input type="date" name="data_consegna"></label>
         </div>
+        <label>Assegna a<select name="assegnatario_id">
+            <option value="">— Nessuno —</option>
+            {% for u in utenti %}<option value="{{ u.id }}" {{ 'selected' if u.id == user.id }}>{{ nome_utente(u) }}</option>{% endfor %}
+        </select></label>
         <label>Allegati PDF<input type="file" name="allegati" accept="application/pdf" multiple></label>
         <button class="btn primary" type="submit">+ Aggiungi bega</button>
     </form>

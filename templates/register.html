@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Registrati — Beghe Tracker{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <section class="card auth-card">
+        <h1 class="auth-title">Crea un account</h1>
+        <p class="muted">Registrazione libera: bastano email e una password di almeno 6 caratteri.</p>
+        <form method="post" action="{{ url_for('register') }}" class="form">
+            <label>Nome <span class="opt">(opzionale)</span><input name="nome" value="{{ nome or '' }}" placeholder="Es. Monte"></label>
+            <label>Email<input name="email" type="email" value="{{ email or '' }}" required autofocus></label>
+            <label>Password <span class="opt">(min 6 caratteri)</span>
+                <input name="password" type="password" minlength="6" required></label>
+            <label>Ripeti password<input name="password2" type="password" minlength="6" required></label>
+            <button class="btn primary" type="submit">Registrati</button>
+        </form>
+        <p class="auth-alt">Hai già un account? <a href="{{ url_for('login') }}">Accedi</a></p>
+    </section>
+</div>
+{% endblock %}

@@ -9,6 +9,53 @@
     <div class="kpi ok"><span class="num">{{ tot.risolte or 0 }}</span><span class="lab">Risolte</span></div>
 </section>
 
+{% if scadute or in_scadenza %}
+<section class="card reminders">
+    <h2 class="card-title">⏰ Promemoria scadenze</h2>
+    {% if scadute %}
+    <h3 class="rem-group danger">Scadute ({{ scadute|length }})</h3>
+    <ul class="rem-list">
+        {% for b in scadute %}
+        <li class="rem scaduta">
+            <a href="{{ url_for('bega_detail', bid=b.id) }}">{{ b.descrizione or '(senza descrizione)' }}</a>
+            <span class="rem-meta">{{ b.fornitore_nome }}{% if b.commessa %} · {{ b.commessa }}{% endif %}</span>
+            <span class="rem-date">{{ b.data_consegna[8:10] }}/{{ b.data_consegna[5:7] }}/{{ b.data_consegna[0:4] }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% if in_scadenza %}
+    <h3 class="rem-group amber">In scadenza entro 3 giorni ({{ in_scadenza|length }})</h3>
+    <ul class="rem-list">
+        {% for b in in_scadenza %}
+        <li class="rem in-scadenza">
+            <a href="{{ url_for('bega_detail', bid=b.id) }}">{{ b.descrizione or '(senza descrizione)' }}</a>
+            <span class="rem-meta">{{ b.fornitore_nome }}{% if b.commessa %} · {{ b.commessa }}{% endif %}</span>
+            <span class="rem-date">{{ b.data_consegna[8:10] }}/{{ b.data_consegna[5:7] }}/{{ b.data_consegna[0:4] }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if assegnate %}
+<section class="card">
+    <h2 class="card-title">👤 Assegnate a me</h2>
+    <p class="muted small">Beghe su fornitori di altri utenti che ti sono state assegnate.</p>
+    <ul class="rem-list">
+        {% for b in assegnate %}
+        <li class="rem aperta">
+            <a href="{{ url_for('bega_detail', bid=b.id) }}">{{ b.descrizione or '(senza descrizione)' }}</a>
+            <span class="rem-meta">{{ b.fornitore_nome }}{% if b.commessa %} · {{ b.commessa }}{% endif %}</span>
+            <span class="tag prio-{{ b.priorita|lower }}">{{ b.priorita }}</span>
+            {% if b.data_consegna %}<span class="rem-date">{{ b.data_consegna[8:10] }}/{{ b.data_consegna[5:7] }}/{{ b.data_consegna[0:4] }}</span>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
 <section class="card">
     <h2 class="card-title">Dettaglio Beghe e Fornitori</h2>
 
